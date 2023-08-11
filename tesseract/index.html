@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Academic Report Card OCR System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady();" onerror="console.error('Failed to load opencv.js script!');"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+  </head>
+  <body>
+    <input type="file" id="inputImage" onchange="loadImage()" accept="image/*" disabled>
+    <div>
+      <canvas id="canvasOriginal"></canvas>
+      <canvas id="canvasProcessed"></canvas>
+      <canvas id="canvasRecognized"></canvas>
+    </div>
+    <div id="rawText" style="margin-bottom:50px;"></div>
+    <form id="gradesForm">
+      <table id="gradesTable" border="1px">
+        <tr>
+          <td>SUBJECT</td>
+          <td>GRADE</td>
+        </tr>
+        <tr>
+          <td>English:</td>
+          <td>
+            <input type="text" id="grade-English" placeholder="English Grade">
+          </td>
+        </tr>
+        <tr>
+          <td>Biology:</td>
+          <td>
+            <input type="text" id="grade-Biology" placeholder="Biology Grade">
+          </td>
+        </tr>
+        <tr>
+          <td>Physics:</td>
+          <td>
+            <input type="text" id="grade-Physics" placeholder="Physics Grade">
+          </td>
+        </tr>
+        <tr>
+          <td>Math:</td>
+          <td>
+            <input type="text" id="grade-Math" placeholder="Math Grade">
+          </td>
+        </tr>
+        <tr>
+          <td>PAI:</td>
+          <td>
+            <input type="text" id="grade-PAI" placeholder="PAI Grade">
+          </td>
+        </tr>
+      </table>
+    </form>
+    <script type="text/javascript">
+      function onOpenCvReady() {
+        $('#inputImage').prop('disabled', false);
+      };
+
+      function loadImage() {
+        let inputImage = $('#inputImage')[0];
+        let canvasOriginal = $('#canvasOriginal')[0];
+        let ctxOriginal = canvasOriginal.getContext('2d');
+        let imgOriginal = new Image();
+        imgOriginal.onload = function() {
+          canvasOriginal.width = imgOriginal.width;
+          canvasOriginal.height = imgOriginal.height;
+          ctxOriginal.drawImage(imgOriginal, 0, 0, imgOriginal.width, imgOriginal.height);
+          processImage();
+        };
+        imgOriginal.src = URL.createObjectURL(inputImage.files[0]);
+      };
+
+      function processImage() {
+        let src = cv.imread('canvasOriginal');
+        let dst = new cv.Mat();
+        cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+        cv.threshold(dst, dst, 127, 255, cv.THRESH_BINARY);
+        cv.imshow('canvasProcessed', dst);
+        let imgProcessed = $('#canvasProcessed')[0].toDataURL();
+        rawText(imgProcessed);
+        recognizeText(imgProcessed);
+      };
+
+      function rawText(imgProcessed) {
+        Tesseract.recognize(imgProcessed, 'eng', {
+          logger: m => console.log(m)
+        }).then(({
+          data: {
+            text
+          }
+        }) => {
+          document.getElementById('rawText').innerText = text;
+        })
+      };
+
+      function recognizeText(imgProcessed) {
+        Tesseract.recognize(imgProcessed, 'eng', {
+          logger: m => console.log(m)
+        }).then(({
+          data: {
+            text,
+            words
+          }
+        }) => {
+          drawBBox(words, imgProcessed);
+          mapGradesToWebForm(text);
+        });
+      };
+      function drawBBox(words, imgProcessed) {
+        let canvasRecognized = $('#canvasRecognized')[0];
+        let boxOutline = canvasRecognized.getContext('2d');
+        let imgRecognized = new Image();
+        imgRecognized.onload = function() {
+          canvasRecognized.width = imgRecognized.width;
+          canvasRecognized.height = imgRecognized.height;
+          boxOutline.drawImage(imgRecognized, 0, 0, imgRecognized.width, imgRecognized.height);
+          words.forEach(word => {
+            let bbox = word.bbox;
+            boxOutline.beginPath();
+            boxOutline.rect(bbox.x0, bbox.y0, bbox.x1 - bbox.x0, bbox.y1 - bbox.y0);
+            boxOutline.lineWidth = 2;
+            boxOutline.strokeStyle = 'red';
+            boxOutline.fillStyle = 'red';
+            boxOutline.stroke();
+            boxOutline.fillText(word.text, bbox.x0, bbox.y0 > 10 ? bbox.y0 - 5 : 10);
+          });
+        };
+        imgRecognized.src = imgProcessed;
+      };
+      const subjectMapping = {
+        'Math': 'grade-Math',
+        'Matematika': 'grade-Math',
+        'English': 'grade-English',
+        'Bahasa Inggris': 'grade-English',
+        'Biology': 'grade-Biology',
+        'Physics': 'grade-Physics',
+        'Physical Education': 'grade-PhysicalEducation',
+        'PE': 'grade-PhysicalEducation',
+        'Pendidikan Agama dan Budi Pekerti': 'grade-PAI',
+        'Matematika': 'grade-Math',
+      };
+
+      function mapGradesToWebForm(text) {
+        let lines = text.split('\n');
+        lines.forEach(line => {
+          let matchWithNumber = line.match(/^\d+\s*\|\s*([\w\s]+)\s+(\d+)/);
+          let matchWithoutNumber = line.match(/^([\w\s]+)\s+(\d+)/);
+          let subjectName, grade;
+          if (matchWithNumber) {
+            subjectName = matchWithNumber[1].trim();
+            grade = matchWithNumber[2];
+          } else if (matchWithoutNumber) {
+            subjectName = matchWithoutNumber[1].trim();
+            grade = matchWithoutNumber[2];
+          }
+          if (subjectName && grade) {
+            let formFieldId = subjectMapping[subjectName];
+            if (formFieldId) {
+              let inputElement = $('#' + formFieldId);
+              if (inputElement) {
+                inputElement.val(grade);
+              }
+            }
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
