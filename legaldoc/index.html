@@ -185,7 +185,7 @@
         $('#spellCheckIndicator').show(); // Show spell-checking progress indicator
         let lines = result.data.text.split('\n');
         let formattedText = `
-			<p>Page ${pageNum}
+			<p><h5 style="color: blue;">PAGE ${pageNum}</h5>
 				<br>`; // Start a new paragraph for each page
         lines.forEach(line => {
           let words = line.split(/\s+/);
