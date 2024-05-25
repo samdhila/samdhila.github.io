@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Include the Animate.css library for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <div class="header animate__animated animate__bounceInDown">
+            <h1>Happy Birthday, Sister!</h1>
+        </div>
+        <div class="content animate__animated animate__fadeIn">
+            <p>Wishing you all the love, joy, and happiness in the world on your special day!</p>
+            <p class="signature">- Your Loving Sibling</p>
+        </div>
+        <button class="animate__animated animate__pulse animate__infinite" onclick="showSurprise()">Click for Surprise</button>
+        <div id="surprise" class="animate__animated animate__zoomIn" style="display:none;">
+            <img src="cake.png" alt="Happy Birthday" class="birthday-image">
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
